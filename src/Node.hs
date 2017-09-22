@@ -1,4 +1,11 @@
-module Node () where
+module Node (
+  Node,
+  NodeId,
+  nodeIO,
+  start,
+  send,
+  recv
+) where
 
 import qualified Control.Concurrent.Async as Async
 import qualified Data.Map.Strict as Map
@@ -29,6 +36,9 @@ data MetaNode msg = MetaNode {
 }
 
 type Node msg a = StateIO (MetaNode msg) a
+
+nodeIO :: IO a -> Node msg a
+nodeIO = Trans.lift
 
 send :: Message.Msg msg => NodeId -> msg -> Node msg ()
 send nid msg = do
@@ -68,6 +78,7 @@ start nid nids comp = do
                         return (n, chan))
                      nids
   serverThread <- Conc.forkIO $ receiver nid readChan
+  Conc.threadDelay 8000
   clientThreads <- mapM (\chan -> Conc.forkIO $ sender chan) writeChans
   let metaNode = MetaNode {
     writeChans = Map.fromList writeChans,
